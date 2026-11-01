@@ -61,35 +61,6 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .mv { display: inline-block; min-width: 80px; }
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
 .legend i { display: inline-block; width: 18px; height: 4px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
-/* Phone: board edge to edge at the very top, coach right under it. */
-@media (max-width: 860px) {
-  body { display: flex; flex-direction: column; }
-  header { order: 2; padding: 8px 12px 24px; }
-  header .sub { display: none; }
-  h1 { font-size: 16px; }
-  main { order: 1; flex-direction: column; gap: 0; padding: 0; }
-  .board-wrap { flex-direction: column; gap: 0; width: 100%; }
-  #board { width: 100vw; }
-  #evalbar { width: 100%; height: 6px; border-radius: 0; flex-direction: row; order: 2; }
-  #evalbar.flipped { flex-direction: row-reverse; }
-  #evalfill { height: 100%; width: var(--white, 50%); }
-  #evaltext { display: none; }
-  aside { width: 100%; min-width: 0; gap: 8px; padding: 8px; }
-  aside section { border-radius: 8px; padding: 10px; }
-  .coach { order: 1; }
-  .plan { order: 2; }
-  .plan .linelist { columns: 1; }
-  .opts { order: 2; }
-  .controls { order: 3; }
-  .chesscom { order: 4; }
-  .movelist { order: 5; }
-  .legend { display: none; }
-
-  #ctext { font-size: 15px; }
-  .controls label { flex: 1; }
-  .controls button { flex-basis: 100%; }
-}
-
 .toprow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 #theme { font-size: 13px; }
 .chip { display: inline; font: 600 0.95em ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0 5px; margin: 0 1px; border-radius: 4px; border: 1px solid var(--border); background: var(--chip); color: var(--text); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
@@ -112,7 +83,95 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 select:disabled { opacity: .5; }
 
 .popclose { position: absolute; top: 6px; right: 6px; border: 0; background: transparent; font-size: 16px; padding: 4px 8px; color: var(--muted); }
+
+/* ---------- shared pieces ---------- */
+.phone-only { display: none !important; }
+.sheet { display: contents; }
+.actionbar { display: flex; gap: 8px; flex-wrap: wrap; }
+.actionbar button { display: inline-flex; align-items: center; gap: 6px; }
+.actionbar .ic { font-size: 15px; line-height: 1; }
+.backdrop { display: none; }
+#planbadge { font-weight: 600; color: var(--muted); }
+#linetoggle { display: none; }
+.wide { width: 100%; padding: 12px; font-weight: 600; }
+
+/* ---------- phone ---------- */
 @media (max-width: 860px) {
-  .movepop { position: fixed; left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100%; border-radius: 14px 14px 0 0; border-width: 1px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); }
-  .popsan { font-size: 20px; }
+  .phone-only { display: revert !important; }
+  .desk-only { display: none !important; }
+  [hidden] { display: none !important; }
+
+  body { padding-bottom: calc(62px + env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+  header { display: none; }
+  main { flex-direction: column; gap: 0; padding: env(safe-area-inset-top) 0 0; }
+  .board-wrap { flex-direction: column; gap: 0; width: 100%; }
+  #board { width: 100vw; }
+  #evalbar { width: 100%; height: 4px; border-radius: 0; flex-direction: row; order: 2; background: #2a2a2a; }
+  #evalbar.flipped { flex-direction: row-reverse; }
+  #evalfill { height: 100%; width: var(--white, 50%); }
+  #evaltext { display: none; }
+
+  aside { width: 100%; min-width: 0; gap: 0; padding: 0; }
+  aside section { border-radius: 0; }
+
+  /* Moves: one swipeable row right under the board. */
+  .movelist { order: 1; background: transparent; border: 0; padding: 8px 12px 0; }
+  .movelist.empty { display: none; }
+  .movelist h3 { display: none; }
+  .moves { display: flex; gap: 10px; overflow-x: auto; max-height: none; padding: 0 0 6px; list-style: none; scrollbar-width: none; counter-reset: mv; }
+  .moves::-webkit-scrollbar { display: none; }
+  .moves li { display: flex; gap: 4px; align-items: center; flex: 0 0 auto; padding: 0; counter-increment: mv; }
+  .moves li::before { content: counter(mv) "."; color: var(--muted); font-size: 12px; }
+  .mv { min-width: 0; white-space: nowrap; }
+  .moves .chip { font-size: 14px; padding: 2px 6px; }
+
+  /* Coach: one clear message, grade on the left edge. */
+  .coach { order: 2; margin: 8px 12px 0; padding: 12px 14px; border: 0; border-left: 4px solid var(--border); border-radius: 12px; background: var(--panel); }
+  .coach.quiet { border-left-color: transparent; padding: 10px 14px; }
+  .coach.quiet #ctitle { font-size: 15px; }
+  .coach.quiet #ctext { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .badge { font-size: 13px; padding: 3px 10px; }
+  #ctext { font-size: 16px; line-height: 1.45; margin-top: 6px; }
+  .line { font-size: 12px; }
+  .actions { margin-top: 12px; }
+  .actions button { flex: 1; padding: 10px; border-radius: 10px; font-weight: 600; }
+
+  /* Bottom bar: the only buttons you need while playing. */
+  .actionbar { order: 9; position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; flex-wrap: nowrap; gap: 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--border); }
+  .actionbar button { flex: 1; flex-direction: column; gap: 2px; border: 0; background: transparent; padding: 4px 0; font-size: 11px; color: var(--muted); }
+  .actionbar button:active { color: var(--text); }
+  .actionbar .ic { font-size: 20px; color: var(--text); }
+  #planbadge { font-size: 10px; }
+
+  /* Slide-up sheets for settings and the plan. */
+  .sheet { display: block; position: fixed; z-index: 21; left: 0; right: 0; bottom: 0; max-height: 86vh; overflow-y: auto; background: var(--panel); border-radius: 18px 18px 0 0; border-top: 1px solid var(--border); padding: 0 4px calc(16px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+  .sheet.open { transform: none; box-shadow: 0 -10px 40px rgba(0,0,0,.5); }
+  .sheet section { background: transparent; border: 0; padding: 10px 12px; }
+  .sheethead { display: flex !important; justify-content: space-between; align-items: center; padding: 16px 16px 4px; position: sticky; top: 0; background: var(--panel); }
+  .sheethead b { font-size: 17px; }
+  .sheetclose { border: 0; background: var(--chip); border-radius: 99px; width: 30px; height: 30px; padding: 0; color: var(--muted); }
+  .sheet .controls { flex-direction: column; align-items: stretch; }
+  .sheet .controls label, .sheet .opts label { font-size: 13px; }
+  .sheet select, .sheet input { width: 100%; padding: 11px 12px; border-radius: 10px; font-size: 16px; margin-top: 4px; }
+  .sheet #ccform button { padding: 0 14px; border-radius: 10px; }
+  .sheet .opts { flex-direction: column; align-items: stretch; gap: 14px; font-size: 15px; }
+  .sheet .opts label { display: flex; justify-content: space-between; align-items: center; flex-direction: row-reverse; font-size: 15px; }
+  .sheet .opts input { width: auto; margin: 0; }
+  #startgame { display: block !important; width: calc(100% - 24px); margin: 8px 12px 0; border-radius: 12px; font-size: 16px; }
+  .plan .linelist { columns: 1; }
+  .plan ul { font-size: 15px; }
+  .actionbar button.phone-only { display: flex !important; }
+  .sheet .opts label.phone-only { display: flex !important; }
+  /* When the game stops after a mistake, its buttons take over the bottom bar. */
+  .coach .actions { position: fixed; z-index: 16; left: 0; right: 0; bottom: 0; margin: 0; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--border); flex-wrap: nowrap; }
+  .coach .actions button { padding: 13px 8px; font-size: 15px; }
+  body:has(.coach .actions button:not([hidden])) { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  #cline:not(.open) { display: none; }
+  #linetoggle:not([hidden]) { display: inline-block !important; margin-top: 8px; border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+  .tip { font-size: 12px; margin-top: 6px; }
+  .backdrop { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.55); }
+
+  .movepop { z-index: 30; position: fixed; left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100%; border-radius: 18px 18px 0 0; border-width: 1px 0 0; padding: 16px 18px calc(16px + env(safe-area-inset-bottom)); }
+  .popsan { font-size: 22px; }
 }
+.movelist.empty { display: none; }

@@ -168,7 +168,7 @@ function setButtons({ retry = false, hint = false, cont = false } = {}) {
 
 function setEval(cpWhite) {
   const pct = winPct(cpWhite);
-  $('evalfill').style.height = `${pct}%`;
+  $('evalbar').style.setProperty('--white', `${pct}%`);
   const txt = Math.abs(cpWhite) >= 9000
     ? `M${Math.round((10000 - Math.abs(cpWhite)) / 10)}`
     : (Math.abs(cpWhite) / 100).toFixed(1);

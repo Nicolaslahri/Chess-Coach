@@ -11,7 +11,9 @@ After each of your moves the board tells you:
 
 After a mistake or blunder the game pauses so you can **try again** (with an optional hint) or continue.
 
-Tap any move (like `Nxf7`) to see what it means in plain words: "Black's knight on g5 takes the white pawn on f7."
+Tap any move (like `Nxf7`) to see what it means in plain words, with a blue arrow on the board: "Black's knight on g5 takes the white pawn on f7."
+
+**Jobava London trainer:** pick it under Mode. You play White and the computer answers with real Black replies from 10 prepared lines. Each move gets a plain-English reason, you're stopped if you leave the plan, and a line counts as mastered once you play it start to finish without help.
 
 There is a pure black dark mode (the default) and a light mode, switchable at the top right.
 
@@ -30,8 +32,7 @@ Then open the address it prints (usually http://localhost:5173).
 
 ## Put it online
 
-Pushing to `main` builds the site and deploys it to GitHub Pages (`.github/workflows/pages.yml`).
-Turn it on once in the repo under **Settings → Pages → Source: GitHub Actions**.
+The site is hosted on Vercel, which rebuilds it on every push to `main`.
 
 ## How it works
 
@@ -39,6 +40,7 @@ Turn it on once in the repo under **Settings → Pages → Source: GitHub Action
 | --- | --- |
 | `src/engine.js` | Talks to Stockfish running in a web worker |
 | `src/coach.js` | Grades a move and writes the explanation |
+| `src/jobava.js` | Jobava London lines and the reason for each move |
 | `src/chesscom.js` | Reads your rating from the Chess.com public API |
 | `src/main.js` | Board, game flow, take-backs, coach panel |
 

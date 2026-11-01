@@ -15,6 +15,8 @@ Tap any move (like `Nxf7`) to see what it means in plain words, with a blue arro
 
 **Jobava London trainer:** pick it under Mode. You play White and the computer answers with real Black replies from 10 prepared lines. Each move gets a plain-English reason, you're stopped if you leave the plan, and a line counts as mastered once you play it start to finish without help.
 
+Your phone vibrates on each move, with a strong buzz for blunders (turn it off with the Vibrate box).
+
 There is a pure black dark mode (the default) and a light mode, switchable at the top right.
 
 Type your **Chess.com username** and it reads your public rating to pick an opponent level that fits you.

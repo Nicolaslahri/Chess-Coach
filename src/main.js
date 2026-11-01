@@ -9,6 +9,7 @@ import { review, GRADES, toCp, winPct, tok, describeMove } from './coach.js';
 import { fetchRatings, mainRating } from './chesscom.js';
 import { Chess as ChessRules } from 'chess.js';
 import { PLAN, LINES, bookReply, checkWhiteMove } from './jobava.js';
+import { buzz, setHaptics } from './haptics.js';
 
 // Opponent strengths. `maxRating` is the Chess.com rating each level suits.
 const LEVELS = [
@@ -292,6 +293,7 @@ async function onUserMove(from, to) {
     return;
   }
   busy = true;
+  buzz('move');
   const ply = chess.history().length - 1;
   syncBoard({ lastMove: [from, to], interactive: false });
   arrows([]);
@@ -321,6 +323,7 @@ async function onUserMove(from, to) {
     line: bad && r.punishLine.length ? lineText('Likely continuation:', r.punishLine) : null,
   });
   arrows(bad ? [{ uci: r.bestUci, brush: 'green' }, { uci: r.threatUci, brush: 'red' }] : []);
+  if (r.grade !== 'good' && r.grade !== 'book') buzz(r.grade);
   setStatus('');
 
   if (chess.isGameOver()) return gameOver();
@@ -349,6 +352,7 @@ async function engineMove() {
   await wait(Math.max(0, 400 - (Date.now() - started)));
   if (id !== gameId) return;
   chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
+  buzz('move');
   arrows([]);
   renderMoves();
   if (chess.isGameOver()) {
@@ -534,6 +538,13 @@ try {
 }
 $('level').addEventListener('change', () => { try { localStorage.setItem('level', $('level').value); } catch {} });
 $('newgame').addEventListener('click', newGame);
+try { $('haptics').checked = localStorage.getItem('haptics') !== 'off'; } catch {}
+setHaptics($('haptics').checked);
+$('haptics').addEventListener('change', () => {
+  setHaptics($('haptics').checked);
+  try { localStorage.setItem('haptics', $('haptics').checked ? 'on' : 'off'); } catch {}
+  if ($('haptics').checked) buzz('best');
+});
 $('mode').addEventListener('change', () => { try { localStorage.setItem('mode', $('mode').value); } catch {} newGame(); });
 try { $('mode').value = localStorage.getItem('mode') || 'free'; } catch {}
 $('takeback').addEventListener('click', takeBack);

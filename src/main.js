@@ -105,8 +105,13 @@ function showCoach({ grade, title, text, line }) {
     $('coach').style.borderColor = '';
   }
   $('ctitle').textContent = title;
+  $('ctitle').hidden = !!grade && title === GRADES[grade].label;
+  $('coach').classList.toggle('quiet', !grade);
   renderRich($('ctext'), text);
   $('cline').hidden = !line;
+  $('cline').classList.remove('open');
+  $('linetoggle').hidden = !line;
+  $('linetoggle').textContent = 'See what happens next ▸';
   renderRich($('cline'), line || '');
 }
 
@@ -232,6 +237,8 @@ function renderMoves() {
     list.append(li);
   }
   list.scrollTop = list.scrollHeight;
+  list.scrollLeft = list.scrollWidth;
+  $('moves').closest('.movelist').classList.toggle('empty', hist.length === 0);
 }
 
 // ---------- game flow ----------
@@ -253,6 +260,7 @@ async function newGame() {
   if (mode === 'jobava') $('color').value = 'w';
   $('color').disabled = mode === 'jobava';
   $('plan').hidden = mode !== 'jobava';
+  $('planbtn').hidden = mode !== 'jobava';
   deviated = false;
   leftBookNoted = false;
   renderPlan();
@@ -391,6 +399,7 @@ function renderPlan() {
   }
   const done = mastered();
   $('progress').textContent = `Lines mastered: ${done.size} of ${LINES.length}`;
+  $('planbadge').textContent = `${done.size}/${LINES.length}`;
   $('linelist').innerHTML = '';
   LINES.forEach((l, i) => {
     const li = document.createElement('li');
@@ -511,12 +520,50 @@ async function setLevelFromChessCom(e) {
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   $('theme').textContent = t === 'dark' ? '☀ Light' : '☾ Dark';
+  $('darkmode').checked = t === 'dark';
+  document.querySelector('meta[name="theme-color"]').content = t === 'dark' ? '#000000' : '#f4f1ec';
 }
 let theme = 'dark';
 try {
   theme = localStorage.getItem('theme') || 'dark';
 } catch {}
 applyTheme(theme);
+$('darkmode').addEventListener('change', () => {
+  theme = $('darkmode').checked ? 'dark' : 'light';
+  applyTheme(theme);
+  try { localStorage.setItem('theme', theme); } catch {}
+});
+
+// ---------- phone sheets (settings, plan) ----------
+function openSheet(id) {
+  closeSheets();
+  $(id).classList.add('open');
+  $('backdrop').hidden = false;
+}
+function closeSheets() {
+  document.querySelectorAll('.sheet.open').forEach((el) => el.classList.remove('open'));
+  $('backdrop').hidden = true;
+}
+$('linetoggle').addEventListener('click', () => {
+  const open = $('cline').classList.toggle('open');
+  $('linetoggle').textContent = open ? 'Hide line ▾' : 'See what happens next ▸';
+  if (open) $('cline').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+$('settingsbtn').addEventListener('click', () => openSheet('settings'));
+$('planbtn').addEventListener('click', () => openSheet('plansheet'));
+$('backdrop').addEventListener('click', closeSheets);
+document.querySelectorAll('.sheetclose').forEach((b) => b.addEventListener('click', closeSheets));
+$('startgame').addEventListener('click', () => { closeSheets(); newGame(); });
+
+// The tip about tapping moves goes away once you've tried it.
+try { if (localStorage.getItem('tipSeen')) $('tip').hidden = true; } catch {}
+document.addEventListener('click', (e) => {
+  if (e.target.closest?.('.chip')) {
+    $('tip').hidden = true;
+    try { localStorage.setItem('tipSeen', '1'); } catch {}
+  }
+});
+
 $('theme').addEventListener('click', () => {
   theme = theme === 'dark' ? 'light' : 'dark';
   applyTheme(theme);

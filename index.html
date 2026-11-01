@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Chess Coach</title>
   </head>
   <body>
@@ -19,40 +22,14 @@
         <div id="board" class="cg-wrap"></div>
       </div>
       <aside>
-        <section class="controls">
-          <label>Mode
-            <select id="mode">
-              <option value="free">Free play</option>
-              <option value="jobava">Jobava London trainer</option>
-            </select>
-          </label>
-          <label>Play as
-            <select id="color">
-              <option value="w">White</option>
-              <option value="b">Black</option>
-            </select>
-          </label>
-          <label>Opponent
-            <select id="level"></select>
-          </label>
-          <button id="newgame" class="primary">New game</button>
-        </section>
-
-        <section class="chesscom">
-          <form id="ccform">
-            <input id="ccuser" placeholder="Chess.com username" autocomplete="off" />
-            <button type="submit">Set my level</button>
-          </form>
-          <p id="ccresult" class="muted"></p>
-        </section>
-
         <section id="coach" class="coach">
           <div class="coach-head">
             <span id="badge" class="badge" hidden></span>
             <h2 id="ctitle">Your move</h2>
           </div>
           <p id="ctext">Make a move on the board. I'll check it right away.</p>
-          <p class="tip">Tip: tap any move, like <b>Nf3</b>, to see what it means in plain words.</p>
+          <p id="tip" class="tip">Tip: tap any move, like <b>Nf3</b>, to see what it means in plain words.</p>
+          <button id="linetoggle" type="button" hidden>See what happens next ▸</button>
           <p id="cline" class="line" hidden></p>
           <div class="actions">
             <button id="retry" hidden>↶ Try again</button>
@@ -62,30 +39,72 @@
           <div id="status" class="status"></div>
         </section>
 
-        <section id="plan" class="plan" hidden>
-          <h3>Jobava London plan</h3>
-          <ul id="planlist"></ul>
-          <p id="progress" class="progress"></p>
-          <ul id="linelist" class="linelist"></ul>
-        </section>
-
-        <section class="opts">
-          <label><input type="checkbox" id="pause" checked /> Stop after mistakes so I can retry</label>
-          <label><input type="checkbox" id="haptics" checked /> Vibrate</label>
-          <button id="takeback">Take back move</button>
-        </section>
-
         <section class="movelist">
           <h3>Moves</h3>
           <ol id="moves" class="moves"></ol>
         </section>
 
-        <section class="legend">
+        <nav id="actionbar" class="actionbar">
+          <button id="takeback" type="button"><span class="ic">↶</span><span class="lb">Take back</span></button>
+          <button id="newgame" type="button"><span class="ic">＋</span><span class="lb">New game</span></button>
+          <button id="planbtn" type="button" class="phone-only" hidden><span class="ic">♞</span><span class="lb">Plan <b id="planbadge"></b></span></button>
+          <button id="settingsbtn" type="button" class="phone-only"><span class="ic">⚙</span><span class="lb">Settings</span></button>
+        </nav>
+
+        <div id="plansheet" class="sheet">
+          <div class="sheethead phone-only"><b>Jobava London plan</b><button type="button" class="sheetclose" aria-label="Close">✕</button></div>
+          <section id="plan" class="plan" hidden>
+            <h3 class="desk-only">Jobava London plan</h3>
+            <ul id="planlist"></ul>
+            <p id="progress" class="progress"></p>
+            <ul id="linelist" class="linelist"></ul>
+          </section>
+        </div>
+
+        <div id="settings" class="sheet">
+          <div class="sheethead phone-only"><b>Settings</b><button type="button" class="sheetclose" aria-label="Close">✕</button></div>
+          <section class="controls">
+            <label>Mode
+              <select id="mode">
+                <option value="free">Free play</option>
+                <option value="jobava">Jobava London trainer</option>
+              </select>
+            </label>
+            <label>Play as
+              <select id="color">
+                <option value="w">White</option>
+                <option value="b">Black</option>
+              </select>
+            </label>
+            <label>Opponent
+              <select id="level"></select>
+            </label>
+          </section>
+
+          <section class="chesscom">
+            <form id="ccform">
+              <input id="ccuser" placeholder="Chess.com username" autocomplete="off" autocapitalize="off" />
+              <button type="submit">Set my level</button>
+            </form>
+            <p id="ccresult" class="muted"></p>
+          </section>
+
+          <section class="opts">
+            <label><input type="checkbox" id="pause" checked /> Stop after mistakes so I can retry</label>
+            <label><input type="checkbox" id="haptics" checked /> Vibrate</label>
+            <label class="phone-only"><input type="checkbox" id="darkmode" /> Dark mode</label>
+          </section>
+
+          <button id="startgame" type="button" class="primary wide phone-only">Start new game</button>
+        </div>
+
+        <section class="legend desk-only">
           <span><i style="background:#15781b"></i>Better move</span>
           <span><i style="background:#882020"></i>Opponent's answer</span>
         </section>
       </aside>
     </main>
+    <div id="backdrop" class="backdrop" hidden></div>
     <div id="movepop" class="movepop" hidden>
       <button id="popclose" class="popclose" type="button" aria-label="Close">✕</button>
       <div class="popsan" id="popsan"></div>

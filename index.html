@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Coach</title>
+  </head>
+  <body>
+    <header>
+      <h1>♞ Chess Coach</h1>
+      <p class="sub">Play the computer. After every move, the coach tells you how it was and what to play instead.</p>
+    </header>
+    <main>
+      <div class="board-wrap">
+        <div id="evalbar" title="Who is better"><div id="evalfill"></div><span id="evaltext">0.0</span></div>
+        <div id="board" class="cg-wrap"></div>
+      </div>
+      <aside>
+        <section class="controls">
+          <label>Play as
+            <select id="color">
+              <option value="w">White</option>
+              <option value="b">Black</option>
+            </select>
+          </label>
+          <label>Opponent
+            <select id="level"></select>
+          </label>
+          <button id="newgame" class="primary">New game</button>
+        </section>
+
+        <section class="chesscom">
+          <form id="ccform">
+            <input id="ccuser" placeholder="Chess.com username" autocomplete="off" />
+            <button type="submit">Set my level</button>
+          </form>
+          <p id="ccresult" class="muted"></p>
+        </section>
+
+        <section id="coach" class="coach">
+          <div class="coach-head">
+            <span id="badge" class="badge" hidden></span>
+            <h2 id="ctitle">Your move</h2>
+          </div>
+          <p id="ctext">Make a move on the board. I'll check it right away.</p>
+          <p id="cline" class="line" hidden></p>
+          <div class="actions">
+            <button id="retry" hidden>↶ Try again</button>
+            <button id="hint" hidden>Show best move</button>
+            <button id="continue" class="primary" hidden>Continue ▸</button>
+          </div>
+          <div id="status" class="status"></div>
+        </section>
+
+        <section class="opts">
+          <label><input type="checkbox" id="pause" checked /> Stop after mistakes so I can retry</label>
+          <button id="takeback">Take back move</button>
+        </section>
+
+        <section>
+          <h3>Moves</h3>
+          <ol id="moves" class="moves"></ol>
+        </section>
+
+        <section class="legend">
+          <span><i style="background:#15781b"></i>Better move</span>
+          <span><i style="background:#882020"></i>Opponent's answer</span>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

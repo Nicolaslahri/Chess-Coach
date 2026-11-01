@@ -10,6 +10,8 @@ export const GRADES = {
   inaccuracy: { label: 'Inaccuracy', color: '#e6b422', icon: '?!' },
   mistake: { label: 'Mistake', color: '#e8812c', icon: '?' },
   blunder: { label: 'Blunder', color: '#d64545', icon: '??' },
+  book: { label: 'Plan move', color: '#4a8fd6', icon: '♞' },
+  offplan: { label: 'Off plan', color: '#4a8fd6', icon: '↺' },
 };
 
 // Mate scores become very large centipawn values so they can be compared.

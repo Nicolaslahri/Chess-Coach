@@ -7,6 +7,8 @@ import './style.css';
 import { Engine } from './engine.js';
 import { review, GRADES, toCp, winPct, tok, describeMove } from './coach.js';
 import { fetchRatings, mainRating } from './chesscom.js';
+import { Chess as ChessRules } from 'chess.js';
+import { PLAN, LINES, bookReply, checkWhiteMove } from './jobava.js';
 
 // Opponent strengths. `maxRating` is the Chess.com rating each level suits.
 const LEVELS = [
@@ -30,6 +32,9 @@ let gameId = 0;
 let pre = null; // { fen, promise } analysis of the position on your turn
 let paused = null; // the review we stopped on
 let busy = false;
+let mode = 'free';
+let deviated = false; // left the plan at some point this game
+let leftBookNoted = false;
 
 const cg = Chessground($('board'), {
   movable: { free: false, showDests: true, events: { after: onUserMove } },
@@ -52,6 +57,8 @@ function dests() {
 }
 
 function syncBoard({ lastMove, interactive }) {
+  if (previewing && !$('movepop').hidden) { $('movepop').hidden = true; popFor = null; cg.setShapes([]); }
+  previewing = false;
   const myTurn = chess.turn() === me && !chess.isGameOver();
   cg.set({
     fen: chess.fen(),
@@ -67,6 +74,7 @@ function syncBoard({ lastMove, interactive }) {
 }
 
 function arrows(list) {
+  savedShapes = list.filter((a) => a.uci).map((a) => ({ orig: a.uci.slice(0, 2), dest: a.uci.slice(2, 4), brush: a.brush }));
   cg.setAutoShapes(list.filter((a) => a.uci).map((a) => ({
     orig: a.uci.slice(0, 2), dest: a.uci.slice(2, 4), brush: a.brush,
   })));
@@ -145,20 +153,42 @@ function explainMove(anchor, fen, san) {
   const left = Math.min(Math.max(8, r.left + window.scrollX), window.scrollX + document.documentElement.clientWidth - w - 8);
   pop.style.left = `${left}px`;
   pop.style.top = `${r.bottom + window.scrollY + 6}px`;
-  // Point at the move on the board when it was played from the position shown.
-  if (fen === chess.fen() || d.fenAfter === chess.fen()) {
-    cg.setShapes([{ orig: d.from, dest: d.to, brush: 'blue' }]);
+  // Always show the move as an arrow. If it was played from a different
+  // position than the one on the board, show that position for a moment.
+  const onBoard = fen === chess.fen() || d.fenAfter === chess.fen();
+  if (!onBoard) {
+    previewing = true;
+    cg.set({ fen, lastMove: undefined, check: false, movable: { color: undefined, dests: new Map() } });
+    cg.setAutoShapes([]);
+  } else if (previewing) {
+    endPreview();
   }
+  $('poppreview').hidden = onBoard;
+  cg.setShapes([{ orig: d.from, dest: d.to, brush: 'blue' }]);
+  pop.style.top = `${r.bottom + window.scrollY + 6}px`;
+  // On phones the explanation slides up from the bottom and the page scrolls
+  // back to the board so the arrow is in view.
+  if (isPhone()) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+const isPhone = () => matchMedia('(max-width: 860px)').matches;
+let previewing = false;
+let savedShapes = [];
+function endPreview() {
+  previewing = false;
+  syncBoard({ lastMove: lastMoveSquares(), interactive: !busy });
+  cg.setAutoShapes(savedShapes);
 }
 function closePop() {
   $('movepop').hidden = true;
   popFor = null;
   cg.setShapes([]);
+  if (previewing) endPreview();
 }
 document.addEventListener('click', (e) => {
   if (!$('movepop').hidden && !$('movepop').contains(e.target)) closePop();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
+$('popclose').addEventListener('click', (e) => { e.stopPropagation(); closePop(); });
 
 function setButtons({ retry = false, hint = false, cont = false } = {}) {
   $('retry').hidden = !retry;
@@ -218,6 +248,13 @@ function startPreAnalysis() {
 
 async function newGame() {
   const id = ++gameId;
+  mode = $('mode').value;
+  if (mode === 'jobava') $('color').value = 'w';
+  $('color').disabled = mode === 'jobava';
+  $('plan').hidden = mode !== 'jobava';
+  deviated = false;
+  leftBookNoted = false;
+  renderPlan();
   me = $('color').value;
   chess.reset();
   reviews = [];
@@ -226,7 +263,9 @@ async function newGame() {
   arrows([]);
   setButtons();
   setEval(0);
-  showCoach({ title: 'New game', text: me === 'w' ? 'You have White. Make your first move.' : 'You have Black. The computer moves first.' });
+  showCoach(mode === 'jobava'
+    ? { title: 'Jobava London trainer', text: 'You have White. Follow the plan: d4, Nc3, Bf4. I\'ll tell you when you leave it and why each move matters.' }
+    : { title: 'New game', text: me === 'w' ? 'You have White. Make your first move.' : 'You have Black. The computer moves first.' });
   syncBoard({ interactive: false });
   renderMoves();
   await Promise.all([coachEngine.newGame(), oppEngine.newGame()]);
@@ -265,6 +304,7 @@ async function onUserMove(from, to) {
 
   const r = review({ fenBefore, played: move, pre: preAnalysis, post, me });
   r.fenBefore = fenBefore;
+  if (mode === 'jobava') applyPlan(r, fenBefore, move);
   reviews[ply] = r;
   renderMoves();
 
@@ -273,7 +313,7 @@ async function onUserMove(from, to) {
     setEval(chess.turn() === 'w' ? cp : -cp);
   }
 
-  const bad = ['inaccuracy', 'mistake', 'blunder'].includes(r.grade);
+  const bad = ['inaccuracy', 'mistake', 'blunder', 'offplan'].includes(r.grade);
   showCoach({
     grade: r.grade,
     title: r.title,
@@ -285,7 +325,8 @@ async function onUserMove(from, to) {
 
   if (chess.isGameOver()) return gameOver();
 
-  if (bad && r.grade !== 'inaccuracy' && $('pause').checked) {
+  const stop = r.grade === 'offplan' || (bad && r.grade !== 'inaccuracy');
+  if (stop && $('pause').checked) {
     paused = r;
     setButtons({ retry: true, cont: true });
     return;
@@ -303,7 +344,7 @@ async function engineMove() {
   setStatus('Opponent is thinking…');
   const level = LEVELS[$('level').value];
   const started = Date.now();
-  const uci = await oppEngine.play(chess.fen(), level);
+  const uci = (mode === 'jobava' && bookReply(chess.fen())) || await oppEngine.play(chess.fen(), level);
   if (id !== gameId) return;
   await wait(Math.max(0, 400 - (Date.now() - started)));
   if (id !== gameId) return;
@@ -330,6 +371,76 @@ function gameOver() {
   const summary = Object.keys(GRADES).filter((g) => counts[g]).map((g) => `${counts[g]} ${GRADES[g].label.toLowerCase()}`).join(', ');
   showCoach({ title: 'Game over', text: `${msg}${summary ? ` Your moves: ${summary}.` : ''}` });
   syncBoard({ lastMove: lastMoveSquares(), interactive: false });
+}
+
+// ---------- Jobava London trainer ----------
+function mastered() {
+  try { return new Set(JSON.parse(localStorage.getItem('jobavaMastered') || '[]')); } catch { return new Set(); }
+}
+
+function renderPlan() {
+  $('planlist').innerHTML = '';
+  for (const p of PLAN) {
+    const li = document.createElement('li');
+    li.textContent = p;
+    $('planlist').append(li);
+  }
+  const done = mastered();
+  $('progress').textContent = `Lines mastered: ${done.size} of ${LINES.length}`;
+  $('linelist').innerHTML = '';
+  LINES.forEach((l, i) => {
+    const li = document.createElement('li');
+    li.className = done.has(i) ? 'done' : '';
+    li.textContent = `${done.has(i) ? '✓' : '○'} ${l.name}`;
+    $('linelist').append(li);
+  });
+}
+
+// Compare your move with the Jobava plan and rewrite the coach's message.
+function applyPlan(r, fenBefore, move) {
+  const j = checkWhiteMove(fenBefore, move.san);
+  const engineBad = ['mistake', 'blunder'].includes(r.grade);
+  if (!j) {
+    if (!leftBookNoted && chess.history().length < 30) {
+      leftBookNoted = true;
+      r.text += ' (You are past the prepared lines now, so the normal coach takes over. Keep the plan in mind: develop, castle, and push your pawns at Black\'s king.)';
+    }
+    return;
+  }
+  if (j.inBook) {
+    if (engineBad) return; // a tactic beats the plan; keep the engine's warning
+    r.grade = 'book';
+    r.title = 'Plan move';
+    r.text = j.note;
+    if (j.ends.length) {
+      const names = j.ends.map((i) => LINES[i].name).join(', ');
+      if (!deviated) {
+        const done = mastered();
+        j.ends.forEach((i) => done.add(i));
+        try { localStorage.setItem('jobavaMastered', JSON.stringify([...done])); } catch {}
+        renderPlan();
+        r.text += ` Line complete: "${names}". You played it all without help, so it counts as mastered.`;
+      } else {
+        r.text += ` Line complete: "${names}". Play it again without leaving the plan to master it.`;
+      }
+    }
+    return;
+  }
+  deviated = true;
+  const m = new ChessRules(fenBefore).move(j.bookSan);
+  const planTok = tok(fenBefore, j.bookSan);
+  if (engineBad) {
+    r.text += ` The Jobava plan here is ${planTok}. ${j.note}`;
+  } else {
+    r.grade = 'offplan';
+    r.title = 'Off plan';
+    r.text = `Not a bad move, but the Jobava plan here is ${planTok}. ${j.note}`;
+    r.threatUci = null;
+    r.punishLine = [];
+  }
+  r.bestUci = m.from + m.to;
+  r.bestSan = j.bookSan;
+  r.bestLine = [{ san: j.bookSan, fen: fenBefore }];
 }
 
 // Undo back to your last move so you can try something else.
@@ -423,6 +534,8 @@ try {
 }
 $('level').addEventListener('change', () => { try { localStorage.setItem('level', $('level').value); } catch {} });
 $('newgame').addEventListener('click', newGame);
+$('mode').addEventListener('change', () => { try { localStorage.setItem('mode', $('mode').value); } catch {} newGame(); });
+try { $('mode').value = localStorage.getItem('mode') || 'free'; } catch {}
 $('takeback').addEventListener('click', takeBack);
 $('retry').addEventListener('click', takeBack);
 $('continue').addEventListener('click', () => { if (paused) engineMove(); });

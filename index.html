@@ -7,7 +7,10 @@
   </head>
   <body>
     <header>
-      <h1>♞ Chess Coach</h1>
+      <div class="toprow">
+        <h1>♞ Chess Coach</h1>
+        <button id="theme" type="button"></button>
+      </div>
       <p class="sub">Play the computer. After every move, the coach tells you how it was and what to play instead.</p>
     </header>
     <main>
@@ -43,6 +46,7 @@
             <h2 id="ctitle">Your move</h2>
           </div>
           <p id="ctext">Make a move on the board. I'll check it right away.</p>
+          <p class="tip">Tip: tap any move, like <b>Nf3</b>, to see what it means in plain words.</p>
           <p id="cline" class="line" hidden></p>
           <div class="actions">
             <button id="retry" hidden>↶ Try again</button>
@@ -68,6 +72,11 @@
         </section>
       </aside>
     </main>
+    <div id="movepop" class="movepop" hidden>
+      <div class="popsan" id="popsan"></div>
+      <p id="poptext"></p>
+      <p id="poplegend" class="poplegend"></p>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

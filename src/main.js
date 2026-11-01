@@ -5,7 +5,7 @@ import 'chessground/assets/chessground.brown.css';
 import 'chessground/assets/chessground.cburnett.css';
 import './style.css';
 import { Engine } from './engine.js';
-import { review, GRADES, toCp, winPct } from './coach.js';
+import { review, GRADES, toCp, winPct, tok, describeMove } from './coach.js';
 import { fetchRatings, mainRating } from './chesscom.js';
 
 // Opponent strengths. `maxRating` is the Chess.com rating each level suits.
@@ -96,10 +96,69 @@ function showCoach({ grade, title, text, line }) {
     $('coach').style.borderColor = '';
   }
   $('ctitle').textContent = title;
-  $('ctext').textContent = text;
+  renderRich($('ctext'), text);
   $('cline').hidden = !line;
-  $('cline').textContent = line || '';
+  renderRich($('cline'), line || '');
 }
+
+// ---------- clickable moves ----------
+const lineText = (label, line) => `${label} ${line.map((m) => tok(m.fen, m.san)).join(' ')}`;
+
+function moveChip(san, fen) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'chip';
+  b.textContent = san;
+  b.title = 'What does this mean?';
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    explainMove(b, fen, san);
+  });
+  return b;
+}
+
+// Render text where {{SAN@FEN}} becomes a clickable move.
+function renderRich(el, text) {
+  el.innerHTML = '';
+  const re = /\{\{([^@}]+)@([^}]+)\}\}/g;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    el.append(text.slice(last, m.index), moveChip(m[1], m[2]));
+    last = m.index + m[0].length;
+  }
+  el.append(text.slice(last));
+}
+
+let popFor = null;
+function explainMove(anchor, fen, san) {
+  const pop = $('movepop');
+  if (popFor === anchor && !pop.hidden) return closePop();
+  const d = describeMove(fen, san);
+  if (!d) return;
+  popFor = anchor;
+  $('popsan').textContent = d.san;
+  $('poptext').textContent = d.text;
+  $('poplegend').textContent = d.legend;
+  pop.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth;
+  const left = Math.min(Math.max(8, r.left + window.scrollX), window.scrollX + document.documentElement.clientWidth - w - 8);
+  pop.style.left = `${left}px`;
+  pop.style.top = `${r.bottom + window.scrollY + 6}px`;
+  // Point at the move on the board when it was played from the position shown.
+  if (fen === chess.fen() || d.fenAfter === chess.fen()) {
+    cg.setShapes([{ orig: d.from, dest: d.to, brush: 'blue' }]);
+  }
+}
+function closePop() {
+  $('movepop').hidden = true;
+  popFor = null;
+  cg.setShapes([]);
+}
+document.addEventListener('click', (e) => {
+  if (!$('movepop').hidden && !$('movepop').contains(e.target)) closePop();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
 
 function setButtons({ retry = false, hint = false, cont = false } = {}) {
   $('retry').hidden = !retry;
@@ -120,14 +179,14 @@ function setEval(cpWhite) {
 function renderMoves() {
   const list = $('moves');
   list.innerHTML = '';
-  const hist = chess.history();
+  const hist = chess.history({ verbose: true });
   for (let i = 0; i < hist.length; i += 2) {
     const li = document.createElement('li');
     for (const ply of [i, i + 1]) {
       if (ply >= hist.length) break;
       const span = document.createElement('span');
       span.className = 'mv';
-      span.textContent = hist[ply];
+      span.append(moveChip(hist[ply].san, hist[ply].before));
       const r = reviews[ply];
       if (r) {
         const g = GRADES[r.grade];
@@ -219,7 +278,7 @@ async function onUserMove(from, to) {
     grade: r.grade,
     title: r.title,
     text: r.text,
-    line: bad && r.punishLine.length ? `Likely continuation: ${r.punishLine.join(' ')}` : null,
+    line: bad && r.punishLine.length ? lineText('Likely continuation:', r.punishLine) : null,
   });
   arrows(bad ? [{ uci: r.bestUci, brush: 'green' }, { uci: r.threatUci, brush: 'red' }] : []);
   setStatus('');
@@ -295,7 +354,7 @@ function takeBack() {
     setButtons({ hint: true });
     $('hint').onclick = () => {
       arrows([{ uci: r.bestUci, brush: 'green' }]);
-      showCoach({ title: 'Best move', text: `The engine's choice here is ${r.bestSan}. Line: ${r.bestLine.join(' ')}` });
+      showCoach({ title: 'Best move', text: `The engine's choice here is ${tok(r.fenBefore, r.bestSan)}. ${lineText('Line:', r.bestLine)}` });
       setButtons();
     };
   } else {
@@ -332,6 +391,22 @@ async function setLevelFromChessCom(e) {
     $('ccresult').textContent = err.message || 'Could not reach Chess.com.';
   }
 }
+
+// ---------- theme ----------
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('theme').textContent = t === 'dark' ? '☀ Light' : '☾ Dark';
+}
+let theme = 'dark';
+try {
+  theme = localStorage.getItem('theme') || 'dark';
+} catch {}
+applyTheme(theme);
+$('theme').addEventListener('click', () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  applyTheme(theme);
+  try { localStorage.setItem('theme', theme); } catch {}
+});
 
 // ---------- wiring ----------
 LEVELS.forEach((l, i) => {

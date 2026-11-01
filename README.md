@@ -11,6 +11,10 @@ After each of your moves the board tells you:
 
 After a mistake or blunder the game pauses so you can **try again** (with an optional hint) or continue.
 
+Tap any move (like `Nxf7`) to see what it means in plain words: "Black's knight on g5 takes the white pawn on f7."
+
+There is a pure black dark mode (the default) and a light mode, switchable at the top right.
+
 Type your **Chess.com username** and it reads your public rating to pick an opponent level that fits you.
 
 Everything runs in your browser. The engine is Stockfish compiled to WebAssembly, so there's no server and no account.

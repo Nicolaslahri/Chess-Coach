@@ -1,14 +1,24 @@
-:root {
+:root, :root[data-theme="light"] {
   --bg: #f4f1ec;
   --panel: #ffffff;
   --text: #22201c;
   --muted: #6d675e;
   --border: #ddd6cb;
   --accent: #3f7d4e;
-  color-scheme: light dark;
+  --chip: #ece6dc;
+  --chip-hover: #ddd3c3;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #1d1c1a; --panel: #2a2825; --text: #ece8e1; --muted: #a39d93; --border: #403c36; --accent: #5fae6f; }
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --panel: #0b0b0b;
+  --text: #f2f2f2;
+  --muted: #9a9a9a;
+  --border: #222222;
+  --accent: #3f9a58;
+  --chip: #1a1a1a;
+  --chip-hover: #2a2a2a;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
@@ -55,3 +65,16 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   main { flex-direction: column; }
   aside { width: 100%; min-width: 0; }
 }
+
+.toprow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+#theme { font-size: 13px; }
+.chip { display: inline; font: 600 0.95em ui-monospace, SFMono-Regular, Menlo, monospace; padding: 0 5px; margin: 0 1px; border-radius: 4px; border: 1px solid var(--border); background: var(--chip); color: var(--text); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.chip:hover { background: var(--chip-hover); border-color: var(--accent); }
+.moves .chip { text-decoration: none; }
+.tip { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.movepop { position: absolute; z-index: 10; width: min(320px, calc(100vw - 16px)); background: var(--panel); color: var(--text); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.movepop[hidden] { display: none; }
+.popsan { font: 700 18px ui-monospace, monospace; }
+.movepop p { margin: 4px 0 0; }
+.poplegend { font-size: 12px; color: var(--muted); }
+:root[data-theme="dark"] cg-board { filter: brightness(.82); }

@@ -53,15 +53,59 @@ function materialAfterLine(fen, ucis, me, minPlies = 5) {
   return materialFor(c, me);
 }
 
+// A move written inside coach text as {{SAN@FEN}} so the page can make it clickable.
+export const tok = (fen, san) => `{{${san}@${fen}}}`;
+
+// Each move of a line with the position it was played from.
 export function sanLine(fen, ucis, n = 6) {
   const c = new Chess(fen);
   const out = [];
   for (const u of ucis.slice(0, n)) {
+    const before = c.fen();
     const m = tryMove(c, u);
     if (!m) break;
-    out.push(m.san);
+    out.push({ san: m.san, fen: before });
   }
   return out;
+}
+
+const SIDE = { w: 'White', b: 'Black' };
+
+// Plain-English meaning of a move like "Nxf7+".
+export function describeMove(fen, san) {
+  let m;
+  try {
+    m = new Chess(fen).move(san);
+  } catch {
+    return null;
+  }
+  const who = SIDE[m.color];
+  let say;
+  if (m.san.startsWith('O-O-O')) {
+    say = `${who} castles on the queen's side: the king moves two squares to ${m.to} and the rook jumps over it to the ${m.color === 'w' ? 'd1' : 'd8'} square.`;
+  } else if (m.san.startsWith('O-O')) {
+    say = `${who} castles on the king's side: the king moves two squares to ${m.to} and the rook jumps over it to the ${m.color === 'w' ? 'f1' : 'f8'} square.`;
+  } else {
+    const piece = `${who}'s ${NAME[m.piece]} on ${m.from}`;
+    if (m.flags.includes('e')) say = `${piece} takes the pawn next to it "en passant" and lands on ${m.to}.`;
+    else if (m.captured) say = `${piece} takes the ${SIDE[m.color === 'w' ? 'b' : 'w'].toLowerCase()} ${NAME[m.captured]} on ${m.to}.`;
+    else say = `${piece} moves to ${m.to}.`;
+    if (m.promotion) say += ` The pawn reaches the last row and turns into a ${NAME[m.promotion]}.`;
+  }
+  if (m.san.includes('#')) say += ' Checkmate: the king is attacked and has no escape.';
+  else if (m.san.includes('+')) say += ' It puts the king in check, so the other side must deal with that first.';
+
+  const parts = [];
+  const letter = m.san[0];
+  if ('NBRQK'.includes(letter) && !m.san.startsWith('O-O')) parts.push(`${letter} = ${NAME[letter.toLowerCase()]}`);
+  else if (!m.san.startsWith('O-O')) parts.push('no capital letter = a pawn');
+  else parts.push('O-O = castle king side, O-O-O = queen side');
+  if (m.san.includes('x')) parts.push('x = takes');
+  if (!m.san.startsWith('O-O')) parts.push(`${m.to} = the square (column ${m.to[0]}, row ${m.to[1]})`);
+  if (m.promotion) parts.push(`=${m.promotion.toUpperCase()} = becomes a ${NAME[m.promotion]}`);
+  if (m.san.includes('#')) parts.push('# = checkmate');
+  else if (m.san.includes('+')) parts.push('+ = check');
+  return { san: m.san, text: say, legend: parts.join(' · '), from: m.from, to: m.to, fenAfter: m.after };
 }
 
 function pawns(cp) {
@@ -118,7 +162,7 @@ export function review({ fenBefore, played, pre, post, me }) {
   }
   if (grade === 'good') {
     result.title = 'Good move';
-    result.text = `Solid. ${bestSan} was a little more precise, but you're fine.`;
+    result.text = `Solid. ${tok(fenBefore, bestSan)} was a little more precise, but you're fine.`;
     return result;
   }
 
@@ -142,20 +186,23 @@ function encouragement(played, beforeChess) {
 function explainError(c) {
   const { fenBefore, fenAfter, played, me, preLine, postLine, bestMove, bestSan, replyMove, replySan, cpLoss, beforeChess } = c;
   const parts = [];
+  const fenB = fenBefore;
+  const B = tok(fenB, bestSan);
+  const R = replySan ? tok(fenAfter, replySan) : '';
 
   // 1. You walked into a forced mate.
   if (postLine && postLine.score.mate != null && postLine.score.mate > 0) {
     const n = postLine.score.mate;
     parts.push(n === 1
-      ? `This allows checkmate: ${replySan}# ends the game.`
-      : `This lets your opponent force checkmate in ${n}, starting with ${replySan}.`);
-    parts.push(`${bestSan} was needed.`);
+      ? `This allows checkmate: ${R} ends the game.`
+      : `This lets your opponent force checkmate in ${n}, starting with ${R}.`);
+    parts.push(`${B} was needed.`);
     return parts.join(' ');
   }
 
   // 2. You missed a forced mate.
   if (preLine.score.mate != null && preLine.score.mate > 0) {
-    parts.push(`You had a forced checkmate in ${preLine.score.mate}, starting with ${bestSan}.`);
+    parts.push(`You had a forced checkmate in ${preLine.score.mate}, starting with ${B}.`);
     return parts.join(' ');
   }
 
@@ -170,44 +217,45 @@ function explainError(c) {
       if (replyMove?.captured) {
         const piece = NAME[replyMove.captured];
         if (replyMove.to === played.to) {
-          parts.push(`Your ${NAME[played.piece]} on ${played.to} isn't safe there. ${replySan} wins it.`);
+          parts.push(`Your ${NAME[played.piece]} on ${played.to} isn't safe there. ${R} wins it.`);
         } else {
-          parts.push(`This leaves your ${piece} on ${replyMove.to} unprotected. Your opponent can take it with ${replySan}.`);
+          parts.push(`This leaves your ${piece} on ${replyMove.to} unprotected. Your opponent can take it with ${R}.`);
         }
       } else if (replyMove) {
         const tactic = replyMove.san.includes('+') ? ' It comes with check, so you have no time to save everything.' : '';
-        parts.push(`After ${replySan} you lose material.${tactic}`);
+        parts.push(`After ${R} you lose material.${tactic}`);
       } else {
         parts.push('This loses material.');
       }
     } else if (bestMove?.captured) {
-      parts.push(`You missed ${bestSan}, which wins a ${NAME[bestMove.captured]}.`);
+      parts.push(`You missed ${B}, which wins a ${NAME[bestMove.captured]}.`);
     } else {
-      parts.push(`You missed ${bestSan}, which wins material.`);
+      parts.push(`You missed ${B}, which wins material.`);
     }
-    if (matPlayed < matNow) parts.push(`${bestSan} was better.`);
+    if (matPlayed < matNow) parts.push(`${B} was better.`);
     return parts.join(' ');
   }
 
   // 4. No material swing: give a simple positional hint.
   const hint = positionalHint(played, bestMove, beforeChess);
   if (hint) parts.push(hint);
-  parts.push(`${bestSan} was stronger. Your move gives away ${pawns(cpLoss)} of advantage.`);
-  if (replySan) parts.push(`Now your opponent's best reply is ${replySan}.`);
+  parts.push(`${B} was stronger. Your move gives away ${pawns(cpLoss)} of advantage.`);
+  if (replySan) parts.push(`Now your opponent's best reply is ${R}.`);
   return parts.join(' ');
 }
 
 function positionalHint(played, bestMove, beforeChess) {
   const early = beforeChess.moveNumber() <= 10;
+  const BM = bestMove ? tok(beforeChess.fen(), bestMove.san) : '';
   if (played.piece === 'k' && !played.san.startsWith('O-O') && early)
     return 'Moving your king early gives up castling and leaves it exposed.';
   if (early && played.piece === 'q')
     return 'Bringing the queen out early lets your opponent gain time by attacking it.';
-  if (bestMove?.san.startsWith('O-O')) return `Castling (${bestMove.san}) would get your king safe first.`;
+  if (bestMove?.san.startsWith('O-O')) return `Castling (${BM}) would get your king safe first.`;
   if (early && bestMove && 'nb'.includes(bestMove.piece) && (bestMove.from[1] === '1' || bestMove.from[1] === '8'))
-    return `${bestMove.san} develops a new piece, which matters more right now.`;
+    return `${BM} develops a new piece, which matters more right now.`;
   if (early && played.piece === 'p' && 'fgh'.includes(played.from[0]) && bestMove?.piece !== 'p')
     return 'Pushing pawns in front of your king weakens it.';
-  if (bestMove?.san.includes('+')) return `${bestMove.san} puts your opponent in check and keeps the initiative.`;
+  if (bestMove?.san.includes('+')) return `${BM} puts your opponent in check and keeps the initiative.`;
   return '';
 }

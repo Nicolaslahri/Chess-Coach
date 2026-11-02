@@ -215,3 +215,133 @@ select:disabled { opacity: .5; }
 @media (min-width: 861px) {
   .opts { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
+
+/* =========================================================
+   Panel redesign (v2): one calm column, things appear when needed
+   ========================================================= */
+:root, :root[data-theme="light"] { --raise: #ffffff; --line: #e6e0d6; --soft: #f0ebe3; }
+:root[data-theme="dark"] { --raise: #121212; --line: #1e1e1e; --soft: #181818; }
+body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+.chip, .popsan, .line { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* Opponent bar */
+.opp { display: flex; align-items: center; gap: 12px; }
+.opp .avatar { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-size: 22px; background: var(--soft); color: var(--text); }
+.oppinfo { display: flex; flex-direction: column; line-height: 1.2; }
+.oppinfo b { font-size: 15px; font-weight: 600; }
+.oppinfo span { font-size: 12.5px; color: var(--muted); }
+.oppstatus { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.opp.busy .oppstatus::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; transform: scale(.7); } }
+
+/* Coach message */
+.coach { border: 0 !important; border-radius: 16px; background: color-mix(in srgb, var(--grade, transparent) 9%, var(--raise)); box-shadow: inset 3px 0 0 var(--grade, var(--line)); transition: background .3s, box-shadow .3s; }
+.coach .badge { border-radius: 8px; padding: 3px 10px; font-size: 12.5px; letter-spacing: .01em; }
+.coach #ctitle { font-weight: 600; }
+#ctext { line-height: 1.5; }
+.tip { opacity: .8; }
+
+/* Before you move */
+.think { border: 0 !important; border-radius: 16px; background: var(--raise); }
+.think h3 { font-size: 11.5px; letter-spacing: .08em; color: var(--muted); }
+.notes { gap: 10px; }
+.note { position: relative; background: transparent; border: 0; padding: 0 0 0 26px; font-size: 15px; }
+.note::before { position: absolute; left: 0; top: 0; width: 18px; text-align: center; font-size: 14px; }
+.note.threat::before { content: "⚠"; color: #e25555; }
+.note.loose::before { content: "◉"; color: #e8812c; }
+.note.chance::before { content: "✦"; color: #3fae5a; }
+.note.idea::before { content: "→"; color: #6aa2e0; }
+.note.idea { color: var(--muted); }
+#hintbtn { border-radius: 999px; padding: 7px 14px; background: var(--soft); border-color: transparent; font-weight: 500; }
+#hintbtn:hover { border-color: var(--accent); }
+
+/* Moves as a tidy table */
+.movelist { border: 0 !important; border-radius: 16px; background: var(--raise); }
+.movelist h3 { font-size: 11.5px; letter-spacing: .08em; }
+
+/* Sheets title row */
+.sheethead { display: flex; justify-content: space-between; align-items: center; }
+.sheetclose { border: 0; background: var(--soft); border-radius: 99px; width: 30px; height: 30px; padding: 0; color: var(--muted); }
+
+@media (min-width: 861px) {
+  .phone-only { display: none !important; }
+  .col { display: contents; }
+  aside {
+    flex: 1; max-width: none; height: 100vh; height: 100dvh; overflow: hidden;
+    display: flex; flex-direction: column; align-items: stretch; gap: 14px;
+    padding: 22px 28px 18px;
+  }
+  aside :is(header, .opp, .coach, .think, .movelist, .actionbar) { width: 100%; max-width: 640px; margin-inline: auto; }
+  aside > * { flex-shrink: 0; }
+  header { order: 1; display: flex; align-items: center; justify-content: space-between; }
+  header .sub, .legend { display: none !important; }
+  header .toprow { width: 100%; }
+  h1 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  #theme { border: 0; background: var(--soft); border-radius: 99px; padding: 6px 12px; font-size: 12.5px; }
+  .opp { order: 2; padding: 4px 2px; }
+  .coach { order: 3; padding: 18px 20px; }
+  .coach .status { display: none; }
+  #ctext { font-size: 18px; margin-top: 10px; }
+  .coach .actions { margin-top: 14px; }
+  .coach .actions button { padding: 10px 16px; border-radius: 10px; font-weight: 600; }
+  .think { order: 4; padding: 16px 20px; }
+  .movelist { order: 5; flex: 1 1 auto; min-height: 120px; display: flex; flex-direction: column; padding: 14px 8px 8px 16px; }
+  .movelist.empty { display: flex; }
+  .movelist.empty .moves::after { content: "Your moves will show up here."; color: var(--muted); font-size: 14px; }
+  .movelist .moves { flex: 1; max-height: none; overflow-y: auto; overflow-x: hidden; padding: 0 8px 0 0; list-style: none; counter-reset: mv; }
+  .moves li { display: grid; grid-template-columns: 38px minmax(0, 150px) minmax(0, 150px); align-items: center; padding: 3px 6px; border-radius: 8px; counter-increment: mv; }
+  .moves li:nth-child(odd) { background: var(--soft); }
+  .moves li::before { content: counter(mv) "."; color: var(--muted); font-size: 13px; }
+  .mv { min-width: 0; }
+  .moves .chip { border: 0; background: transparent; font-size: 14px; padding: 2px 6px; }
+  .moves .chip:hover { background: var(--chip-hover); }
+  .moves li:last-child .mv:last-child .chip { background: var(--chip-hover); }
+
+  /* Toolbar pinned at the bottom */
+  .actionbar { order: 6; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+  .actionbar button { flex-direction: column; justify-content: center; gap: 4px; padding: 10px 6px; border: 0; border-radius: 12px; background: var(--raise); color: var(--muted); font-size: 12.5px; font-weight: 500; }
+  .actionbar button:hover { color: var(--text); background: var(--soft); }
+  .actionbar .ic { font-size: 18px; color: var(--text); }
+  .actionbar button[hidden] { display: none; }
+
+  /* Settings and plan as pop-up windows */
+  .sheet {
+    display: block; position: fixed; z-index: 21; left: 50%; top: 50%; width: min(460px, calc(100vw - 48px)); max-height: 84vh; overflow-y: auto;
+    background: var(--raise); border: 1px solid var(--line); border-radius: 18px; padding: 4px 6px 18px;
+    transform: translate(-50%, -48%) scale(.97); opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+    box-shadow: 0 24px 80px rgba(0,0,0,.55);
+  }
+  .sheet.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+  .sheet section { background: transparent; border: 0; padding: 10px 14px; }
+  .sheethead { padding: 16px 16px 4px; }
+  .sheethead b { font-size: 17px; }
+  .sheet .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sheet .controls label:first-child { grid-column: 1 / -1; }
+  .sheet select, .sheet input { width: 100%; padding: 9px 11px; border-radius: 10px; margin-top: 4px; font-size: 14px; }
+  .sheet .opts { flex-direction: column; align-items: stretch; gap: 12px; }
+  .sheet .opts label { display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; font-size: 14.5px; }
+  .sheet #ccform button { border-radius: 10px; }
+  #startgame { display: block; width: calc(100% - 28px); margin: 8px 14px 0; border-radius: 12px; padding: 12px; }
+  .backdrop:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+  .plan { padding-top: 0 !important; }
+}
+
+/* Phone tweaks to match */
+@media (max-width: 860px) {
+  .opp { order: 0; padding: 10px 14px 0; }
+  .opp .avatar { width: 30px; height: 30px; font-size: 17px; border-radius: 8px; }
+  .coach { border-left: 0 !important; }
+  .coach .status { display: none; }
+  .think { background: var(--raise); }
+}
+.sheet input[type="checkbox"] { width: 18px !important; height: 18px; margin: 0 !important; padding: 0; accent-color: var(--accent); flex: 0 0 auto; }
+.sheet .opts label { gap: 12px; }
+@media (max-width: 860px) {
+  .movelist { background: transparent !important; border-radius: 0 !important; }
+  .opp { padding: 8px 14px 0; gap: 8px; }
+  .opp .avatar { width: 22px; height: 22px; font-size: 13px; border-radius: 6px; }
+  .oppinfo { flex-direction: row; gap: 6px; align-items: baseline; }
+  .oppinfo b { font-size: 13px; }
+  .oppinfo span { font-size: 12px; }
+  .oppstatus { font-size: 12px; }
+}

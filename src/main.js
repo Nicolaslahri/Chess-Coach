@@ -11,6 +11,7 @@ import { Chess as ChessRules } from 'chess.js';
 import { PLAN, LINES, bookReply, checkWhiteMove } from './jobava.js';
 import { buzz, setHaptics } from './haptics.js';
 import { moveSound, play as playSound, setSounds } from './sounds.js';
+import { beforeYouMove, hintLadder, nullMoveFen } from './teacher.js';
 
 // Opponent strengths. `maxRating` is the Chess.com rating each level suits.
 const LEVELS = [
@@ -253,10 +254,90 @@ function startPreAnalysis() {
     const cp = toCp(a.lines[0].score);
     setEval(chess.turn() === 'w' ? cp : -cp);
   });
+  teach(fen, promise, id);
+}
+
+// ---------- teacher: before you move ----------
+let hints = [];
+let hintLevel = 0;
+
+async function teach(fen, prePromise, id) {
+  hints = [];
+  hintLevel = 0;
+  $('hinttext').textContent = '';
+  $('hintbtn').hidden = true;
+  if (!$('teach').checked || chess.turn() !== me) { $('think').hidden = true; return; }
+  $('thinktitle').textContent = 'Before you move';
+  $('think').hidden = false;
+  $('think').classList.remove('review');
+  $('notes').innerHTML = '<li class="note idea">Looking at the position…</li>';
+  const nf = nullMoveFen(fen);
+  const threatPromise = nf ? coachEngine.analyse(nf, { depth: 10 }).then((a) => ({ ...a, fen: nf })) : Promise.resolve(null);
+  const [preA, threat] = await Promise.all([prePromise, threatPromise]);
+  if (id !== gameId || chess.fen() !== fen) return;
+  const notes = beforeYouMove({ chess, me, pre: preA, threat });
+  $('notes').innerHTML = '';
+  const shapes = [];
+  for (const n of notes) {
+    const li = document.createElement('li');
+    li.className = `note ${n.kind}`;
+    renderRich(li, n.text);
+    $('notes').append(li);
+    if (n.arrow) shapes.push({ orig: n.arrow.slice(0, 2), dest: n.arrow.slice(2, 4), brush: 'red' });
+    if (n.square) shapes.push({ orig: n.square, brush: 'red' });
+  }
+  savedShapes = shapes;
+  if (!previewing) cg.setAutoShapes(shapes);
+  if (notes.some((n) => n.kind === 'threat' || n.kind === 'loose')) buzz('inaccuracy');
+  hints = hintLadder(fen, preA.lines[0]);
+  $('hintbtn').hidden = !hints.length;
+  $('hintbtn').textContent = '💡 Hint';
+}
+
+function nextHint() {
+  if (hintLevel >= hints.length) return;
+  const h = hints[hintLevel++];
+  renderRich($('hinttext'), h.text);
+  const shapes = savedShapes.filter((x) => x.brush === 'red');
+  if (h.circle) shapes.push({ orig: h.circle, brush: 'green' });
+  if (h.arrow) shapes.push({ orig: h.arrow.slice(0, 2), dest: h.arrow.slice(2, 4), brush: 'green' });
+  savedShapes = shapes;
+  cg.setAutoShapes(shapes);
+  $('hintbtn').textContent = hintLevel === 1 ? '💡 Another hint' : '💡 Show the answer';
+  $('hintbtn').hidden = hintLevel >= hints.length;
+}
+
+// After the game: the moments that mattered most.
+function keyMoments() {
+  const hist = chess.history({ verbose: true });
+  const bad = reviews
+    .map((r, ply) => ({ r, ply }))
+    .filter(({ r }) => r && ['blunder', 'mistake', 'inaccuracy'].includes(r.grade))
+    .sort((a, b) => (b.r.cpLoss || 0) - (a.r.cpLoss || 0))
+    .slice(0, 3)
+    .sort((a, b) => a.ply - b.ply);
+  $('thinktitle').textContent = 'Key moments';
+  $('think').hidden = false;
+  $('think').classList.add('review');
+  $('hintbtn').hidden = true;
+  $('hinttext').textContent = '';
+  $('notes').innerHTML = '';
+  if (!bad.length) {
+    $('notes').innerHTML = '<li class="note idea">No real mistakes this game. Nicely played!</li>';
+    return;
+  }
+  for (const { r, ply } of bad) {
+    const li = document.createElement('li');
+    li.className = `note ${r.grade === 'inaccuracy' ? 'loose' : 'threat'}`;
+    const n = Math.floor(ply / 2) + 1;
+    renderRich(li, `Move ${n}: you played ${tok(r.fenBefore, hist[ply].san)} (${GRADES[r.grade].label.toLowerCase()}). Better was ${tok(r.fenBefore, r.bestSan)}. Tap the moves to see them on the board.`);
+    $('notes').append(li);
+  }
 }
 
 async function newGame() {
   const id = ++gameId;
+  $('think').hidden = true;
   mode = $('mode').value;
   if (mode === 'jobava') $('color').value = 'w';
   $('color').disabled = mode === 'jobava';
@@ -302,6 +383,7 @@ async function onUserMove(from, to) {
     return;
   }
   busy = true;
+  $('think').hidden = true;
   buzz('move');
   moveSound(move);
   const ply = chess.history().length - 1;
@@ -378,14 +460,16 @@ function gameOver() {
   setStatus('');
   setButtons();
   let msg;
-  if (chess.isCheckmate()) msg = chess.turn() === me ? 'Checkmate. The computer won this one.' : 'Checkmate. You won!';
-  if (chess.isCheckmate()) setTimeout(() => playSound(chess.turn() === me ? 'lose' : 'win'), 250);
-  else if (chess.isStalemate()) msg = 'Stalemate: a draw.';
+  if (chess.isCheckmate()) {
+    msg = chess.turn() === me ? 'Checkmate. The computer won this one.' : 'Checkmate. You won!';
+    setTimeout(() => playSound(chess.turn() === me ? 'lose' : 'win'), 250);
+  } else if (chess.isStalemate()) msg = 'Stalemate: a draw.';
   else msg = 'Draw.';
   const counts = {};
   for (const r of reviews) if (r) counts[r.grade] = (counts[r.grade] || 0) + 1;
   const summary = Object.keys(GRADES).filter((g) => counts[g]).map((g) => `${counts[g]} ${GRADES[g].label.toLowerCase()}`).join(', ');
   showCoach({ title: 'Game over', text: `${msg}${summary ? ` Your moves: ${summary}.` : ''}` });
+  keyMoments();
   syncBoard({ lastMove: lastMoveSquares(), interactive: false });
 }
 
@@ -589,6 +673,12 @@ try {
 }
 $('level').addEventListener('change', () => { try { localStorage.setItem('level', $('level').value); } catch {} });
 $('newgame').addEventListener('click', newGame);
+$('hintbtn').addEventListener('click', nextHint);
+try { $('teach').checked = localStorage.getItem('teach') !== 'off'; } catch {}
+$('teach').addEventListener('change', () => {
+  try { localStorage.setItem('teach', $('teach').checked ? 'on' : 'off'); } catch {}
+  if (chess.turn() === me && !busy && pre) teach(pre.fen, pre.promise, gameId); else $('think').hidden = true;
+});
 try { $('sounds').checked = localStorage.getItem('sounds') !== 'off'; } catch {}
 setSounds($('sounds').checked);
 $('sounds').addEventListener('change', () => {

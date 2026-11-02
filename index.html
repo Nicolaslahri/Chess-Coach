@@ -15,6 +15,7 @@
         <div id="board" class="cg-wrap"></div>
       </div>
       <aside>
+        <div class="col col-main">
         <header>
           <div class="toprow">
             <h1>♞ Chess Coach</h1>
@@ -39,6 +40,17 @@
           <div id="status" class="status"></div>
         </section>
 
+        <section id="think" class="think" hidden>
+          <h3 id="thinktitle">Before you move</h3>
+          <ul id="notes" class="notes"></ul>
+          <div id="hintrow" class="hintrow">
+            <button id="hintbtn" type="button">💡 Hint</button>
+            <p id="hinttext" class="hinttext"></p>
+          </div>
+        </section>
+        </div>
+
+        <div class="col col-side">
         <section class="movelist">
           <h3>Moves</h3>
           <ol id="moves" class="moves"></ol>
@@ -91,6 +103,7 @@
 
           <section class="opts">
             <label><input type="checkbox" id="pause" checked /> Stop after mistakes so I can retry</label>
+            <label><input type="checkbox" id="teach" checked /> Coach me before my move</label>
             <label><input type="checkbox" id="sounds" checked /> Sounds</label>
             <label><input type="checkbox" id="haptics" checked /> Vibrate</label>
             <label class="phone-only"><input type="checkbox" id="darkmode" /> Dark mode</label>
@@ -103,6 +116,7 @@
           <span><i style="background:#15781b"></i>Better move</span>
           <span><i style="background:#882020"></i>Opponent's answer</span>
         </section>
+        </div>
       </aside>
     </main>
     <div id="backdrop" class="backdrop" hidden></div>

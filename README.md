@@ -9,6 +9,8 @@ After each of your moves the board tells you:
 - **Why**: a short explanation, like "this leaves your knight unprotected" or "you missed a free bishop"
 - **What your opponent can do now**: a red arrow for their best answer
 
+**Before each move**, a teacher card tells you what your opponent is threatening, which of your pieces are hanging, and when there's a tactic to find (without giving it away). Stuck? The hint button gives three steps: which piece, what kind of move, then the answer. When the game ends you get your key moments to review.
+
 After a mistake or blunder the game pauses so you can **try again** (with an optional hint) or continue.
 
 Tap any move (like `Nxf7`) to see what it means in plain words, with a blue arrow on the board: "Black's knight on g5 takes the white pawn on f7."
@@ -43,6 +45,7 @@ The site is hosted on Vercel, which rebuilds it on every push to `main`.
 | `src/engine.js` | Talks to Stockfish running in a web worker |
 | `src/coach.js` | Grades a move and writes the explanation |
 | `src/jobava.js` | Jobava London lines and the reason for each move |
+| `src/teacher.js` | Threats, hanging pieces, tactic alerts and hints before your move |
 | `src/chesscom.js` | Reads your rating from the Chess.com public API |
 | `src/main.js` | Board, game flow, take-backs, coach panel |
 

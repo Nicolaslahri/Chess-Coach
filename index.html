@@ -9,19 +9,19 @@
     <title>Chess Coach</title>
   </head>
   <body>
-    <header>
-      <div class="toprow">
-        <h1>♞ Chess Coach</h1>
-        <button id="theme" type="button"></button>
-      </div>
-      <p class="sub">Play the computer. After every move, the coach tells you how it was and what to play instead.</p>
-    </header>
     <main>
       <div class="board-wrap">
         <div id="evalbar" title="Who is better"><div id="evalfill"></div><span id="evaltext">0.0</span></div>
         <div id="board" class="cg-wrap"></div>
       </div>
       <aside>
+        <header>
+          <div class="toprow">
+            <h1>♞ Chess Coach</h1>
+            <button id="theme" type="button"></button>
+          </div>
+          <p class="sub">Play the computer. After every move, the coach tells you how it was and what to play instead.</p>
+        </header>
         <section id="coach" class="coach">
           <div class="coach-head">
             <span id="badge" class="badge" hidden></span>
@@ -91,6 +91,7 @@
 
           <section class="opts">
             <label><input type="checkbox" id="pause" checked /> Stop after mistakes so I can retry</label>
+            <label><input type="checkbox" id="sounds" checked /> Sounds</label>
             <label><input type="checkbox" id="haptics" checked /> Vibrate</label>
             <label class="phone-only"><input type="checkbox" id="darkmode" /> Dark mode</label>
           </section>

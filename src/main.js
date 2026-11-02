@@ -92,6 +92,8 @@ function lastMoveSquares() {
 // ---------- coach panel ----------
 function setStatus(text) {
   $('status').textContent = text || '';
+  $('oppstatus').textContent = text || '';
+  $('opp').classList.toggle('busy', !!text);
 }
 
 function showCoach({ grade, title, text, line }) {
@@ -101,10 +103,10 @@ function showCoach({ grade, title, text, line }) {
     badge.hidden = false;
     badge.textContent = `${g.icon} ${g.label}`;
     badge.style.background = g.color;
-    $('coach').style.borderColor = g.color;
+    $('coach').style.setProperty('--grade', g.color);
   } else {
     badge.hidden = true;
-    $('coach').style.borderColor = '';
+    $('coach').style.removeProperty('--grade');
   }
   $('ctitle').textContent = title;
   $('ctitle').hidden = !!grade && title === GRADES[grade].label;
@@ -346,6 +348,7 @@ async function newGame() {
   deviated = false;
   leftBookNoted = false;
   renderPlan();
+  $('opplevel').textContent = mode === 'jobava' ? 'Jobava London trainer' : `${LEVELS[$('level').value].name} level`;
   me = $('color').value;
   chess.reset();
   reviews = [];

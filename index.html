@@ -7,6 +7,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <title>Chess Coach</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <main>
@@ -23,6 +26,11 @@
           </div>
           <p class="sub">Play the computer. After every move, the coach tells you how it was and what to play instead.</p>
         </header>
+        <div id="opp" class="opp">
+          <span class="avatar">♚</span>
+          <div class="oppinfo"><b>Stockfish</b><span id="opplevel">Novice</span></div>
+          <span id="oppstatus" class="oppstatus"></span>
+        </div>
         <section id="coach" class="coach">
           <div class="coach-head">
             <span id="badge" class="badge" hidden></span>
@@ -59,14 +67,14 @@
         <nav id="actionbar" class="actionbar">
           <button id="takeback" type="button"><span class="ic">↶</span><span class="lb">Take back</span></button>
           <button id="newgame" type="button"><span class="ic">＋</span><span class="lb">New game</span></button>
-          <button id="planbtn" type="button" class="phone-only" hidden><span class="ic">♞</span><span class="lb">Plan <b id="planbadge"></b></span></button>
-          <button id="settingsbtn" type="button" class="phone-only"><span class="ic">⚙</span><span class="lb">Settings</span></button>
+          <button id="planbtn" type="button" hidden><span class="ic">♞</span><span class="lb">Plan <b id="planbadge"></b></span></button>
+          <button id="settingsbtn" type="button"><span class="ic">⚙</span><span class="lb">Settings</span></button>
         </nav>
 
         <div id="plansheet" class="sheet">
-          <div class="sheethead phone-only"><b>Jobava London plan</b><button type="button" class="sheetclose" aria-label="Close">✕</button></div>
+          <div class="sheethead"><b>Jobava London plan</b><button type="button" class="sheetclose" aria-label="Close">✕</button></div>
           <section id="plan" class="plan" hidden>
-            <h3 class="desk-only">Jobava London plan</h3>
+            
             <ul id="planlist"></ul>
             <p id="progress" class="progress"></p>
             <ul id="linelist" class="linelist"></ul>
@@ -74,7 +82,7 @@
         </div>
 
         <div id="settings" class="sheet">
-          <div class="sheethead phone-only"><b>Settings</b><button type="button" class="sheetclose" aria-label="Close">✕</button></div>
+          <div class="sheethead"><b>Settings</b><button type="button" class="sheetclose" aria-label="Close">✕</button></div>
           <section class="controls">
             <label>Mode
               <select id="mode">
@@ -106,10 +114,10 @@
             <label><input type="checkbox" id="teach" checked /> Coach me before my move</label>
             <label><input type="checkbox" id="sounds" checked /> Sounds</label>
             <label><input type="checkbox" id="haptics" checked /> Vibrate</label>
-            <label class="phone-only"><input type="checkbox" id="darkmode" /> Dark mode</label>
+            <label><input type="checkbox" id="darkmode" /> Dark mode</label>
           </section>
 
-          <button id="startgame" type="button" class="primary wide phone-only">Start new game</button>
+          <button id="startgame" type="button" class="primary wide">Start new game</button>
         </div>
 
         <section class="legend desk-only">

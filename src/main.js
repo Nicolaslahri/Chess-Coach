@@ -10,6 +10,7 @@ import { fetchRatings, mainRating } from './chesscom.js';
 import { Chess as ChessRules } from 'chess.js';
 import { PLAN, LINES, bookReply, checkWhiteMove } from './jobava.js';
 import { buzz, setHaptics } from './haptics.js';
+import { moveSound, play as playSound, setSounds } from './sounds.js';
 
 // Opponent strengths. `maxRating` is the Chess.com rating each level suits.
 const LEVELS = [
@@ -302,6 +303,7 @@ async function onUserMove(from, to) {
   }
   busy = true;
   buzz('move');
+  moveSound(move);
   const ply = chess.history().length - 1;
   syncBoard({ lastMove: [from, to], interactive: false });
   arrows([]);
@@ -359,8 +361,9 @@ async function engineMove() {
   if (id !== gameId) return;
   await wait(Math.max(0, 400 - (Date.now() - started)));
   if (id !== gameId) return;
-  chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
+  const oppMove = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
   buzz('move');
+  moveSound(oppMove);
   arrows([]);
   renderMoves();
   if (chess.isGameOver()) {
@@ -376,6 +379,7 @@ function gameOver() {
   setButtons();
   let msg;
   if (chess.isCheckmate()) msg = chess.turn() === me ? 'Checkmate. The computer won this one.' : 'Checkmate. You won!';
+  if (chess.isCheckmate()) setTimeout(() => playSound(chess.turn() === me ? 'lose' : 'win'), 250);
   else if (chess.isStalemate()) msg = 'Stalemate: a draw.';
   else msg = 'Draw.';
   const counts = {};
@@ -585,6 +589,15 @@ try {
 }
 $('level').addEventListener('change', () => { try { localStorage.setItem('level', $('level').value); } catch {} });
 $('newgame').addEventListener('click', newGame);
+try { $('sounds').checked = localStorage.getItem('sounds') !== 'off'; } catch {}
+setSounds($('sounds').checked);
+$('sounds').addEventListener('change', () => {
+  setSounds($('sounds').checked);
+  try { localStorage.setItem('sounds', $('sounds').checked ? 'on' : 'off'); } catch {}
+  if ($('sounds').checked) playSound('move');
+});
+// Keep the board sharp when the window changes size.
+window.addEventListener('resize', () => cg.redrawAll());
 try { $('haptics').checked = localStorage.getItem('haptics') !== 'off'; } catch {}
 setHaptics($('haptics').checked);
 $('haptics').addEventListener('change', () => {
